@@ -11,7 +11,15 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
-const allowedChannelId = '1365777368534483072'; // Replace with your actual channel ID
+// 👇 Only allow reactions in this channel
+const allowedChannelId = 'YOUR_CHANNEL_ID_HERE';
+
+// 👥 List of allowed users who can delete messages using ❌
+const allowedUsers = [
+  '123456789012345678', // Replace with actual user IDs
+  '987654321098765432'
+  // Add up to 10 users
+];
 
 client.on('ready', () => {
   console.log(`🤖 Bot is ready: ${client.user.tag}`);
@@ -40,17 +48,21 @@ client.on('messageReactionAdd', async (reaction, user) => {
       message.channel.id !== allowedChannelId
     ) return;
 
-    const mentionedUser = message.mentions.users.first();
-    await message.delete();
-    console.log(`🗑️ Deleted message with ❌ by ${user.tag}`);
-
-    if (!mentionedUser) {
-      console.log('ℹ️ No user mentioned, no reaction cleanup needed.');
+    // 👤 Only allow specific users to delete
+    if (!allowedUsers.includes(user.id)) {
+      console.log(`⛔ ${user.tag} is not allowed to delete messages.`);
+      // Optionally remove their ❌ reaction:
+      await reaction.users.remove(user.id);
       return;
     }
 
-    console.log(`🚮 Removing all reactions by mentioned user: ${mentionedUser.tag}`);
+    const mentionedUser = message.mentions.users.first();
+    await message.delete();
+    console.log(`🗑️ Message deleted with ❌ by authorized user ${user.tag}`);
 
+    if (!mentionedUser) return;
+
+    // Remove all past reactions by the mentioned user
     const messages = await message.channel.messages.fetch({ limit: 100 });
     for (const msg of messages.values()) {
       for (const [emoji, react] of msg.reactions.cache) {
@@ -63,7 +75,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
     }
 
   } catch (err) {
-    console.error('Error during ❌ cleanup:', err);
+    console.error('Error in ❌ handling:', err);
   }
 });
 
