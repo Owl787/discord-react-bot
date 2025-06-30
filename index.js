@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Partials } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
 require('dotenv').config();
 
 const client = new Client({
@@ -11,81 +11,113 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
-// ✅ The channel where ❌ can be used to trigger the action
-const controlChannelId = '1389276304544764054'; // e.g. #mod-delete
-
-// ✅ The channel where reactions will be removed
-const targetChannelId = '1389276377890684948'; // e.g. #submissions
-
-// 👥 Users allowed to use ❌ to delete & trigger reaction cleanup
+// 🔧 SETTINGS
+const controlChannelId = '1389276304544764054'; // Where you mention users
+const targetChannelId = '1389276377890684948';   // Where reactions get checked
 const allowedUsers = [
-  '762245134485946399', // Replace with real user IDs
-  '987654321098765432'
+  '762245134485946399', // moderator 1
+  '987654321098765432'  // moderator 2
 ];
 
-client.on('ready', () => {
-  console.log(`🤖 Bot is ready: ${client.user.tag}`);
+client.once('ready', () => {
+  console.log(`✅ Logged in as ${client.user.tag}`);
 });
 
-client.on('messageCreate', async (message) => {
-  if (message.author.bot) return;
-  if (message.channel.id !== controlChannelId) return;
+// Store cleanup targets
+const cleanupQueue = new Map();
 
-  try {
-    await message.react('✅');
-    await message.react('❌');
-  } catch (err) {
-    console.error('Reaction error:', err);
+client.on('messageCreate', async (message) => {
+  if (
+    message.author.bot ||
+    message.channel.id !== controlChannelId ||
+    message.mentions.users.size === 0
+  ) return;
+
+  const mentionedUser = message.mentions.users.first();
+  const targetChannel = await message.guild.channels.fetch(targetChannelId);
+  if (!targetChannel || !targetChannel.isTextBased()) return;
+
+  const messages = await targetChannel.messages.fetch({ limit: 100 });
+  const reactioners = new Set();
+
+  for (const msg of messages.values()) {
+    for (const [emoji, react] of msg.reactions.cache) {
+      const users = await react.users.fetch();
+      if (users.has(mentionedUser.id)) {
+        users.forEach(u => {
+          if (!u.bot && u.id !== mentionedUser.id) {
+            reactioners.add(u.id);
+          }
+        });
+      }
+    }
   }
+
+  if (reactioners.size === 0) {
+    await message.reply(`No other users reacted to messages with @${mentionedUser.username}.`);
+    return;
+  }
+
+  const mentions = [...reactioners].map(id => `<@${id}>`).join(' ');
+  const reply = await message.reply({
+    content: `🔍 @${mentionedUser.username} reacted on messages.\n` +
+             `These users also reacted:\n${mentions}\n\n` +
+             `React with ✅ to delete their reactions, ❌ to cancel.`,
+  });
+
+  await reply.react('✅');
+  await reply.react('❌');
+
+  cleanupQueue.set(reply.id, {
+    mentionedUserId: mentionedUser.id,
+    toRemoveIds: [...reactioners]
+  });
 });
 
 client.on('messageReactionAdd', async (reaction, user) => {
-  try {
-    if (reaction.partial) await reaction.fetch();
-    const { message } = reaction;
+  if (reaction.partial) await reaction.fetch();
+  if (user.bot) return;
 
-    if (
-      reaction.emoji.name !== '❌' ||
-      user.bot ||
-      message.channel.id !== controlChannelId
-    ) return;
+  const msg = reaction.message;
 
-    if (!allowedUsers.includes(user.id)) {
-      console.log(`⛔ Unauthorized user ${user.tag} tried to delete a message.`);
-      await reaction.users.remove(user.id);
-      return;
-    }
+  if (
+    msg.channel.id !== controlChannelId ||
+    !cleanupQueue.has(msg.id) ||
+    !['✅', '❌'].includes(reaction.emoji.name)
+  ) return;
 
-    const mentionedUser = message.mentions.users.first();
-    await message.delete();
-    console.log(`🗑️ Deleted message via ❌ by ${user.tag}`);
+  if (!allowedUsers.includes(user.id)) {
+    await reaction.users.remove(user.id);
+    return;
+  }
 
-    if (!mentionedUser) {
-      console.log(`ℹ️ No mentioned user — skipping reaction cleanup.`);
-      return;
-    }
+  const action = cleanupQueue.get(msg.id);
+  cleanupQueue.delete(msg.id);
 
-    // 🔄 Now go to the target channel and remove all reactions by mentionedUser
-    const targetChannel = await message.guild.channels.fetch(targetChannelId);
-    if (!targetChannel || !targetChannel.isTextBased()) {
-      console.log(`❌ Cannot access target channel.`);
-      return;
-    }
+  if (reaction.emoji.name === '❌') {
+    await msg.reply('❌ Cleanup canceled.');
+    return;
+  }
 
-    const messages = await targetChannel.messages.fetch({ limit: 100 });
-    for (const msg of messages.values()) {
-      for (const [emoji, react] of msg.reactions.cache) {
-        const users = await react.users.fetch();
-        if (users.has(mentionedUser.id)) {
-          await react.users.remove(mentionedUser.id);
-          console.log(`❌ Removed ${emoji.name} from message ${msg.id} in #${targetChannel.name}`);
+  const targetChannel = await msg.guild.channels.fetch(targetChannelId);
+  if (!targetChannel || !targetChannel.isTextBased()) return;
+
+  const messages = await targetChannel.messages.fetch({ limit: 100 });
+  let count = 0;
+
+  for (const message of messages.values()) {
+    for (const [emoji, react] of message.reactions.cache) {
+      const users = await react.users.fetch();
+      for (const uid of action.toRemoveIds) {
+        if (users.has(uid)) {
+          await react.users.remove(uid);
+          count++;
         }
       }
     }
-
-  } catch (err) {
-    console.error('Error during reaction-delete workflow:', err);
   }
+
+  await msg.reply(`✅ Removed ${count} reactions by the users.`);
 });
 
 client.login(process.env.DISCORD_TOKEN);
