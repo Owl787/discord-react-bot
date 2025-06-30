@@ -11,11 +11,12 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
+// 🔒 Only react in this channel
+const allowedChannelId = 'YOUR_CHANNEL_ID_HERE';
+
 client.on('ready', () => {
   console.log(`🤖 Bot is ready: ${client.user.tag}`);
 });
-
-const allowedChannelId = '1365777368534483072'; // Replace with real channel ID
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
@@ -35,37 +36,29 @@ client.on('messageReactionAdd', async (reaction, user) => {
 
     const { message } = reaction;
     if (
-      reaction.emoji.name !== '❌' ||
       user.bot ||
+      reaction.emoji.name !== '❌' ||
       message.channel.id !== allowedChannelId
     ) return;
 
-    // Delete the message
+    // 1. Delete the message that got ❌
     await message.delete();
-    console.log(`🗑️ Deleted message due to ❌ reaction by ${user.tag}`);
+    console.log(`🗑️ Deleted message reacted with ❌ by ${user.tag}`);
 
-    // Remove ❌ reactions by the same user on other messages in the same channel
-    const messages = await message.channel.messages.fetch({ limit: 50 });
+    // 2. Remove all reactions by this user in this channel
+    const messages = await message.channel.messages.fetch({ limit: 100 });
     for (const msg of messages.values()) {
-      const react = msg.reactions.cache.get('❌');
-      if (react) {
+      for (const [emoji, react] of msg.reactions.cache) {
         const users = await react.users.fetch();
         if (users.has(user.id)) {
           await react.users.remove(user.id);
-          console.log(`❌ Removed ${user.tag}'s reaction from another message`);
+          console.log(`🚫 Removed ${user.tag}'s ${emoji} reaction on a message`);
         }
       }
     }
 
   } catch (err) {
-    console.error('Error handling reaction:', err);
-  }
-});
-
-client.on('messageReactionAdd', async (reaction, user) => {
-  if (reaction.partial) await reaction.fetch();
-  if (reaction.emoji.name === '❌' && !user.bot) {
-    await reaction.message.delete();
+    console.error('❌ Error processing ❌ reaction:', err);
   }
 });
 
