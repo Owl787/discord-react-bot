@@ -12,7 +12,7 @@ const client = new Client({
 });
 
 // 🔒 Only react in this channel
-const allowedChannelId = 'YOUR_CHANNEL_ID_HERE';
+const allowedChannelId = '1365777368534483072';
 
 client.on('ready', () => {
   console.log(`🤖 Bot is ready: ${client.user.tag}`);
