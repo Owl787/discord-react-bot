@@ -12,9 +12,9 @@ const client = new Client({
 });
 
 // SETUP
-const controlChannelId = 'CONTROL_CHANNEL_ID_HERE';
-const targetChannelId = 'TARGET_CHANNEL_ID_HERE';
-const allowedUsers = ['MODERATOR_USER_ID_1', 'MODERATOR_USER_ID_2'];
+const controlChannelId = '1389276304544764054';
+const targetChannelId = '1389276377890684948';
+const allowedUsers = ['762245134485946399', 'MODERATOR_USER_ID_2'];
 
 const reactionTracking = new Map(); // key = controlMsgId, value = { messageId, channelId, userIdToRemove }
 
