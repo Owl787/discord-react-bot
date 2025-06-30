@@ -15,7 +15,7 @@ client.on('ready', () => {
   console.log(`🤖 Bot is ready: ${client.user.tag}`);
 });
 
-const allowedChannelId = 'YOUR_CHANNEL_ID_HERE'; // Replace with real channel ID
+const allowedChannelId = '1365777368534483072'; // Replace with real channel ID
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
