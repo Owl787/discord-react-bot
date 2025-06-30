@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits, Partials } = require('discord.js'); require('
 
 const client = new Client({ intents: [ GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMessageReactions, ], partials: [Partials.Message, Partials.Channel, Partials.Reaction], });
 
-// SETUP const controlChannelId = '1389308377909166110'; const targetChannelId = '1389276377890684948'; const allowedUsers = ['762245134485946399', 'MODERATOR_USER_ID_2'];
+// SETUP const controlChannelId = '1389308377909166110'; const targetChannelId = '1389276377890684948'; const allowedUsers = ['762245134485946399', '141586079508594688'];
 
 const reactionTracking = new Map(); // key = controlMsgId, value = { messageId, channelId, userIdToRemove }
 
