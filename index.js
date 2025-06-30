@@ -12,12 +12,12 @@ const client = new Client({
 });
 
 // 👇 Only allow reactions in this channel
-const allowedChannelId = 'YOUR_CHANNEL_ID_HERE';
+const allowedChannelId = '1365777368534483072';
 
 // 👥 List of allowed users who can delete messages using ❌
 const allowedUsers = [
-  '123456789012345678', // Replace with actual user IDs
-  '987654321098765432'
+  '762245134485946399', // Replace with actual user IDs
+  '231802655217811458'
   // Add up to 10 users
 ];
 
