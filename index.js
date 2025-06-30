@@ -19,11 +19,8 @@ const targetChannelId = '1389276377890684948'; // e.g. #submissions
 
 // 👥 Users allowed to use ❌ to delete & trigger reaction cleanup
 const allowedUsers = [
-    '762245134485946399', // Replace with real user IDs
-  '231802655217811458'
-  '1225607879613091921'
-  '1233433191973392385'
-  '544910210045575189'
+  '762245134485946399', // Replace with real user IDs
+  '987654321098765432'
 ];
 
 client.on('ready', () => {
