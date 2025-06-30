@@ -12,9 +12,9 @@ const client = new Client({
 });
 
 // SETUP
-const controlChannelId = '1389276304544764054';
-const targetChannelId = '1389276377890684948';
-const allowedUsers = ['762245134485946399', 'MODERATOR_USER_ID_2'];
+const controlChannelId = 'CONTROL_CHANNEL_ID_HERE';
+const targetChannelId = 'TARGET_CHANNEL_ID_HERE';
+const allowedUsers = ['MODERATOR_USER_ID_1', 'MODERATOR_USER_ID_2'];
 
 const reactionTracking = new Map(); // key = controlMsgId, value = { messageId, channelId, userIdToRemove }
 
@@ -98,71 +98,3 @@ client.on('messageReactionAdd', async (reaction, user) => {
 });
 
 client.login(process.env.DISCORD_TOKEN);
-
-
-✅ Done! The bot is now designed exactly as you wanted.
-
-
----
-
-🔧 What This Bot Does:
-
-You mention someone (e.g. @BadUser) in a control channel
-
-Bot searches a target channel
-
-For every message they reacted to:
-
-It checks who else reacted
-
-Sends:
-
-P @UserX
-[message link]
-✅ = keep
-❌ = delete reaction
-
-
-You (mods) click ❌ to remove that one reaction only
-
-
-
----
-
-📂 Setup Checklist
-
-1. In the code:
-
-Replace:
-
-const controlChannelId = 'CONTROL_CHANNEL_ID_HERE';
-const targetChannelId = 'TARGET_CHANNEL_ID_HERE';
-const allowedUsers = ['MODERATOR_USER_ID_1', 'MODERATOR_USER_ID_2'];
-
-With your real values (channel IDs and moderator user IDs)
-
-
-
-2. Add your bot token to .env file:
-
-DISCORD_TOKEN=your_discord_bot_token
-
-
-3. Deploy to Railway, Glitch, or Replit — all work well with this code.
-
-
-
-
----
-
-💬 Optional Add-ons (Just Ask):
-
-Limit how many messages it checks (like last 50 only)
-
-Automatically delete messages after reaction decision
-
-Add logs to a #mod-logs channel
-
-
-Let me know when you're ready for more upgrades or help deploying it!
-
