@@ -11,8 +11,7 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
-// 🔒 Only react in this channel
-const allowedChannelId = '1365777368534483072';
+const allowedChannelId = '1365777368534483072'; // Replace with your actual channel ID
 
 client.on('ready', () => {
   console.log(`🤖 Bot is ready: ${client.user.tag}`);
@@ -33,32 +32,38 @@ client.on('messageCreate', async (message) => {
 client.on('messageReactionAdd', async (reaction, user) => {
   try {
     if (reaction.partial) await reaction.fetch();
-
     const { message } = reaction;
+
     if (
       user.bot ||
       reaction.emoji.name !== '❌' ||
       message.channel.id !== allowedChannelId
     ) return;
 
-    // 1. Delete the message that got ❌
+    const mentionedUser = message.mentions.users.first();
     await message.delete();
-    console.log(`🗑️ Deleted message reacted with ❌ by ${user.tag}`);
+    console.log(`🗑️ Deleted message with ❌ by ${user.tag}`);
 
-    // 2. Remove all reactions by this user in this channel
+    if (!mentionedUser) {
+      console.log('ℹ️ No user mentioned, no reaction cleanup needed.');
+      return;
+    }
+
+    console.log(`🚮 Removing all reactions by mentioned user: ${mentionedUser.tag}`);
+
     const messages = await message.channel.messages.fetch({ limit: 100 });
     for (const msg of messages.values()) {
       for (const [emoji, react] of msg.reactions.cache) {
         const users = await react.users.fetch();
-        if (users.has(user.id)) {
-          await react.users.remove(user.id);
-          console.log(`🚫 Removed ${user.tag}'s ${emoji} reaction on a message`);
+        if (users.has(mentionedUser.id)) {
+          await react.users.remove(mentionedUser.id);
+          console.log(`❌ Removed ${emoji} from ${msg.id} by ${mentionedUser.tag}`);
         }
       }
     }
 
   } catch (err) {
-    console.error('❌ Error processing ❌ reaction:', err);
+    console.error('Error during ❌ cleanup:', err);
   }
 });
 
