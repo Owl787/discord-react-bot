@@ -15,10 +15,20 @@ client.on('ready', () => {
   console.log(`🤖 Bot is ready: ${client.user.tag}`);
 });
 
+// Replace with your channel ID
+const allowedChannelId = 'YOUR_CHANNEL_ID_HERE';
+
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
-  await message.react('✅');
-  await message.react('❌');
+
+  if (message.channel.id !== allowedChannelId) return; // Only react in the chosen channel
+
+  try {
+    await message.react('✅');
+    await message.react('❌');
+  } catch (err) {
+    console.error('Reaction error:', err);
+  }
 });
 
 client.on('messageReactionAdd', async (reaction, user) => {
