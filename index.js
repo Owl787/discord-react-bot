@@ -11,14 +11,13 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
-// 👇 Only allow reactions in this channel
-const allowedChannelId = '1365777368534483072';
+// ✅ Channel where delete action is allowed
+const allowedChannelId = 'YOUR_CHANNEL_ID_HERE';
 
-// 👥 List of allowed users who can delete messages using ❌
+// ✅ Only these users can trigger deletion with ❌
 const allowedUsers = [
-  '762245134485946399', // Replace with actual user IDs
-  '231802655217811458'
-  // Add up to 10 users
+  '123456789012345678', // Replace with real user IDs
+  '987654321098765432'
 ];
 
 client.on('ready', () => {
@@ -43,39 +42,47 @@ client.on('messageReactionAdd', async (reaction, user) => {
     const { message } = reaction;
 
     if (
-      user.bot ||
       reaction.emoji.name !== '❌' ||
+      user.bot ||
       message.channel.id !== allowedChannelId
     ) return;
 
-    // 👤 Only allow specific users to delete
     if (!allowedUsers.includes(user.id)) {
-      console.log(`⛔ ${user.tag} is not allowed to delete messages.`);
-      // Optionally remove their ❌ reaction:
-      await reaction.users.remove(user.id);
+      console.log(`⛔ Unauthorized user ${user.tag} tried to delete a message.`);
+      await reaction.users.remove(user.id); // Optionally remove ❌
       return;
     }
 
     const mentionedUser = message.mentions.users.first();
     await message.delete();
-    console.log(`🗑️ Message deleted with ❌ by authorized user ${user.tag}`);
+    console.log(`🗑️ Deleted message via ❌ by ${user.tag}`);
 
     if (!mentionedUser) return;
 
-    // Remove all past reactions by the mentioned user
-    const messages = await message.channel.messages.fetch({ limit: 100 });
-    for (const msg of messages.values()) {
-      for (const [emoji, react] of msg.reactions.cache) {
-        const users = await react.users.fetch();
-        if (users.has(mentionedUser.id)) {
-          await react.users.remove(mentionedUser.id);
-          console.log(`❌ Removed ${emoji} from ${msg.id} by ${mentionedUser.tag}`);
+    console.log(`🧹 Removing all reactions by ${mentionedUser.tag} in all channels...`);
+
+    // Loop through all text channels in the server
+    message.guild.channels.cache
+      .filter(c => c.isTextBased() && c.viewable)
+      .forEach(async (channel) => {
+        try {
+          const msgs = await channel.messages.fetch({ limit: 50 }); // Fetch last 50 messages
+          for (const msg of msgs.values()) {
+            for (const [emoji, react] of msg.reactions.cache) {
+              const users = await react.users.fetch();
+              if (users.has(mentionedUser.id)) {
+                await react.users.remove(mentionedUser.id);
+                console.log(`❌ Removed ${emoji.name} from ${msg.id} in #${channel.name}`);
+              }
+            }
+          }
+        } catch (err) {
+          console.warn(`⚠️ Could not check channel #${channel.name}: ${err.message}`);
         }
-      }
-    }
+      });
 
   } catch (err) {
-    console.error('Error in ❌ handling:', err);
+    console.error('❌ Error in reaction handling:', err);
   }
 });
 
