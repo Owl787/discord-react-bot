@@ -89,52 +89,42 @@ client.on('messageReactionAdd', async (reaction, user) => {
 });
 
 client.login(process.env.DISCORD_TOKEN);
-
-client.on('messageCreate', async (message) => {
-  if (message.author.bot || message.channel.id !== controlChannelId) return;
-
-  // Auto-add ✅ and ❌ when someone posts in control channel
+if (message.content.trim() === '!p') {
   try {
-    await message.react('✅');
-    await message.react('❌');
-  } catch (err) {
-    console.error('Reaction error:', err);
-  }
+    const targetChannel = await message.guild.channels.fetch(targetChannelId);
+    if (!targetChannel || !targetChannel.isTextBased()) return;
 
-  // ✅ Handle #p command
-  const match = message.content.match(/^#p\s+<@!?(\d+)>|#p\s+(\d+)/);
-  const userId = match?.[1] || match?.[2];
+    const messages = await targetChannel.messages.fetch({ limit: 100 });
+    const userReactionMap = new Map();
 
-  if (userId) {
-    try {
-      const targetChannel = await message.guild.channels.fetch(targetChannelId);
-      if (!targetChannel || !targetChannel.isTextBased()) return;
-
-      const fetchedUser = await message.guild.members.fetch(userId).catch(() => null);
-      if (!fetchedUser) {
-        await message.reply('❌ User not found.');
-        return;
-      }
-
-      const messages = await targetChannel.messages.fetch({ limit: 100 });
-      let removedCount = 0;
-
-      for (const msg of messages.values()) {
-        for (const [emoji, react] of msg.reactions.cache) {
-          const users = await react.users.fetch();
-          if (users.has(userId)) {
-            await react.users.remove(userId);
-            removedCount++;
-            console.log(`🧽 Removed ${emoji.name} by ${fetchedUser.user.tag} from msg ${msg.id}`);
+    for (const msg of messages.values()) {
+      for (const [emoji, reaction] of msg.reactions.cache) {
+        if (emoji !== '👍' && emoji !== '👎') continue;
+        const users = await reaction.users.fetch();
+        users.forEach((user) => {
+          if (user.bot) return;
+          if (!userReactionMap.has(user.id)) {
+            userReactionMap.set(user.id, { username: user.username, up: 0, down: 0 });
           }
-        }
+          if (emoji === '👍') userReactionMap.get(user.id).up++;
+          if (emoji === '👎') userReactionMap.get(user.id).down++;
+        });
       }
-
-      await message.reply(`🧹 Removed **${removedCount}** reactions by <@${userId}> from #${targetChannel.name}`);
-
-    } catch (err) {
-      console.error('Error handling #p command:', err);
-      await message.reply('⚠️ Error while processing #p command.');
     }
+
+    if (userReactionMap.size === 0) {
+      await message.reply('ℹ️ No reactions found from users.');
+      return;
+    }
+
+    let report = '📊 Reaction Summary:\n';
+    for (const [id, data] of userReactionMap) {
+      report += `• **${data.username}** → 👍 ${data.up} | 👎 ${data.down}\n`;
+    }
+
+    await message.reply({ content: report.slice(0, 2000) }); // Discord limit
+  } catch (err) {
+    console.error('❌ Error in !p summary:', err);
+    await message.reply('⚠️ Failed to generate reaction summary.');
   }
-});
+}
