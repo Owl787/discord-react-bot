@@ -2,15 +2,17 @@ const { Client, GatewayIntentBits, Partials } = require('discord.js'); require('
 
 const client = new Client({ intents: [ GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMessageReactions, ], partials: [Partials.Message, Partials.Channel, Partials.Reaction], });
 
-// ✅ Load from .env file const controlChannelId = process.env.CONTROL_CHANNEL_ID; const targetChannelId = process.env.TARGET_CHANNEL_ID; const allowedUsers = process.env.ALLOWED_USER_IDS?.split(',') || [];
+const controlChannelId = process.env.CONTROL_CHANNEL_ID; const targetChannelId = process.env.TARGET_CHANNEL_ID; const allowedUsers = process.env.ALLOWED_USER_IDS?.split(',') || [];
 
 const reactionTracking = new Map();
 
-client.on('ready', () => { console.log(`✅ Bot logged in as ${client.user.tag}`); });
+client.on('ready', () => { console.log(✅ Bot logged in as ${client.user.tag}); });
 
 client.on('messageCreate', async (message) => { if (message.author.bot || message.channel.id !== controlChannelId) return;
 
-const mentionedUser = message.mentions.users.first(); if (!mentionedUser) return;
+console.log(📥 Message in control channel: ${message.content});
+
+const mentionedUser = message.mentions.users.first(); if (!mentionedUser) { console.log('❗ No user mentioned.'); return; }
 
 try { const targetChannel = await message.guild.channels.fetch(targetChannelId); if (!targetChannel || !targetChannel.isTextBased()) return;
 
