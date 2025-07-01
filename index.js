@@ -22,7 +22,9 @@ if (users.has(mentionedUser.id)) {
     for (const [userId, reactingUser] of users) {
       if (reactingUser.bot || reactingUser.id === mentionedUser.id) continue;
 
-      "P " + reactingUser.id + "\n@" + mentionedUser.username + " reacted on [this message](https://discord.com/channels/" + message.guild.id + "/" + msg.channel.id + "/" + msg.id + ")\n✅ = keep ❌ = delete this user's reaction (only in target channel)"
+      const messageLink = "https://discord.com/channels/" + message.guild.id + "/" + msg.channel.id + "/" + msg.id;
+      const controlMsg = await message.channel.send(
+        "P " + reactingUser.id + "\n@" + mentionedUser.username + " reacted on this message:\n" + messageLink + "\n✅ = keep ❌ = delete this user's reaction"
       );
 
       await controlMsg.react('✅');
@@ -48,10 +50,7 @@ if (!allowedUsers.includes(user.id)) { await reaction.users.remove(user.id); ret
 const { messageId, channelId, userIdToRemove } = reactionTracking.get(controlMsg.id);
 
 if (reaction.emoji.name === '❌') { try { if (channelId !== targetChannelId) return; // Ensure deletion only in target
-const messageLink = `https://discord.com/channels/${message.guild.id}/${msg.channel.id}/${msg.id}`;
-const controlMsg = await message.channel.send(
-  `P ${reactingUser.id}\n@${mentionedUser.username} reacted on this message:\n${messageLink}\n✅ = keep ❌ = delete this user's reaction`
-);
+
 const targetChannel = await client.channels.fetch(channelId);
   const msg = await targetChannel.messages.fetch(messageId);
 
@@ -63,12 +62,12 @@ const targetChannel = await client.channels.fetch(channelId);
     }
   }
 
-  await controlMsg.reply(`❌ Removed reaction from <@${userIdToRemove}> on [message link](https://discord.com/channels/${controlMsg.guild.id}/${channelId}/${messageId})`);
+  await controlMsg.reply("❌ Removed reaction from <@" + userIdToRemove + "> on message: https://discord.com/channels/" + controlMsg.guild.id + "/" + channelId + "/" + messageId);
 } catch (err) {
   console.error('Failed to remove reaction:', err);
 }
 
-} else { await controlMsg.reply(✅ Kept reaction from <@${userIdToRemove}>.); }
+} else { await controlMsg.reply("✅ Kept reaction from <@" + userIdToRemove + ">."); }
 
 reactionTracking.delete(controlMsg.id); });
 
