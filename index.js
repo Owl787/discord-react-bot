@@ -48,7 +48,10 @@ if (!allowedUsers.includes(user.id)) { await reaction.users.remove(user.id); ret
 const { messageId, channelId, userIdToRemove } = reactionTracking.get(controlMsg.id);
 
 if (reaction.emoji.name === '❌') { try { if (channelId !== targetChannelId) return; // Ensure deletion only in target
-
+const messageLink = `https://discord.com/channels/${message.guild.id}/${msg.channel.id}/${msg.id}`;
+const controlMsg = await message.channel.send(
+  `P ${reactingUser.id}\n@${mentionedUser.username} reacted on this message:\n${messageLink}\n✅ = keep ❌ = delete this user's reaction`
+);
 const targetChannel = await client.channels.fetch(channelId);
   const msg = await targetChannel.messages.fetch(messageId);
 
