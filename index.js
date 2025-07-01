@@ -6,7 +6,7 @@ const client = new Client({ intents: [ GatewayIntentBits.Guilds, GatewayIntentBi
 
 const reactionTracking = new Map();
 
-client.on('ready', () => { console.log(✅ Bot logged in as ${client.user.tag}); });
+client.on('ready', () => { console.log(`✅ Bot logged in as ${client.user.tag}`); });
 
 client.on('messageCreate', async (message) => { if (message.author.bot || message.channel.id !== controlChannelId) return;
 
