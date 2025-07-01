@@ -1,35 +1,41 @@
 const { Client, GatewayIntentBits, Partials } = require('discord.js'); require('dotenv').config();
 
-const client = new Client({ intents: [ GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMessageReactions, ], partials: [Partials.Message, Partials.Channel, Partials.Reaction], });
+const client = new Client({ intents: [ GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMessageReactions ], partials: [Partials.Message, Partials.Channel, Partials.Reaction] });
 
-const controlChannelId = process.env.CONTROL_CHANNEL_ID; const targetChannelId = process.env.TARGET_CHANNEL_ID; const allowedUsers = process.env.ALLOWED_USER_IDS?.split(',') || [];
+const controlChannelId = process.env.CONTROL_CHANNEL_ID || '1389276304544764054'; const targetChannelId = process.env.TARGET_CHANNEL_ID || '1389276377890684948'; const allowedUsers = process.env.ALLOWED_USER_IDS?.split(',') || ['762245134485946399', '987654321098765432'];
 
 const reactionTracking = new Map();
 
-client.on('ready', () => { console.log(✅ Bot logged in as ${client.user.tag}); });
+client.on('ready', () => { console.log(🤖 Bot is ready: ${client.user.tag}); });
 
 client.on('messageCreate', async (message) => { if (message.author.bot || message.channel.id !== controlChannelId) return;
 
-console.log(📥 Message in control channel: ${message.content});
-
-const mentionedUser = message.mentions.users.first(); if (!mentionedUser) { console.log('❗ No user mentioned.'); return; }
+const mentionedUser = message.mentions.users.first(); if (!mentionedUser) return;
 
 try { const targetChannel = await message.guild.channels.fetch(targetChannelId); if (!targetChannel || !targetChannel.isTextBased()) return;
 
 const messages = await targetChannel.messages.fetch({ limit: 100 });
+const processedUsers = new Set();
 
 for (const msg of messages.values()) {
-  for (const [emoji, reaction] of msg.reactions.cache) {
-    const users = await reaction.users.fetch();
+  for (const [emoji, react] of msg.reactions.cache) {
+    const users = await react.users.fetch();
     if (!users.has(mentionedUser.id)) continue;
 
     for (const [userId, reactingUser] of users) {
-      if (reactingUser.bot || reactingUser.id === mentionedUser.id) continue;
+      if (
+        reactingUser.bot ||
+        reactingUser.id === mentionedUser.id ||
+        processedUsers.has(reactingUser.id)
+      ) continue;
+
+      processedUsers.add(reactingUser.id);
 
       const messageLink = `https://discord.com/channels/${message.guild.id}/${msg.channel.id}/${msg.id}`;
-      const controlText = `P ${reactingUser.id}\n@${mentionedUser.username} reacted on:\n${messageLink}\n✅ = keep ❌ = delete`;
+      const controlText = `P <@${reactingUser.id}> reacted to <@${mentionedUser.id}>\n[Jump to Message](${messageLink})`;
 
       const controlMsg = await message.channel.send(controlText);
+      await message.channel.send(`#p <@${reactingUser.id}>`);
       await controlMsg.react('✅');
       await controlMsg.react('❌');
 
@@ -42,34 +48,43 @@ for (const msg of messages.values()) {
   }
 }
 
-} catch (err) { console.error('⚠️ Error processing reactions:', err); } });
+} catch (err) { console.error('Error scanning reactions:', err); } });
 
-client.on('messageReactionAdd', async (reaction, user) => { if (reaction.partial) await reaction.fetch(); if (user.bot || !['✅', '❌'].includes(reaction.emoji.name)) return;
+client.on('messageReactionAdd', async (reaction, user) => { try { if (reaction.partial) await reaction.fetch(); const { message } = reaction;
 
-const controlMsg = reaction.message; if (controlMsg.channel.id !== controlChannelId || !reactionTracking.has(controlMsg.id)) return;
+if (
+  !['✅', '❌'].includes(reaction.emoji.name) ||
+  user.bot ||
+  message.channel.id !== controlChannelId ||
+  !reactionTracking.has(message.id)
+) return;
 
-if (!allowedUsers.includes(user.id)) { await reaction.users.remove(user.id); return; }
+if (!allowedUsers.includes(user.id)) {
+  console.log(`⛔ Unauthorized user ${user.tag} reacted.`);
+  await reaction.users.remove(user.id);
+  return;
+}
 
-const { messageId, channelId, userIdToRemove } = reactionTracking.get(controlMsg.id);
-
-try { const targetChannel = await client.channels.fetch(channelId); const msg = await targetChannel.messages.fetch(messageId);
+const { messageId, channelId, userIdToRemove } = reactionTracking.get(message.id);
+const targetChannel = await client.channels.fetch(channelId);
+const msg = await targetChannel.messages.fetch(messageId);
 
 if (reaction.emoji.name === '❌') {
   for (const [emoji, react] of msg.reactions.cache) {
     const users = await react.users.fetch();
     if (users.has(userIdToRemove)) {
       await react.users.remove(userIdToRemove);
-      console.log(`❌ Removed reaction from user ${userIdToRemove}`);
+      console.log(`❌ Removed ${emoji.name} from message ${msg.id} for user ${userIdToRemove}`);
     }
   }
-  await controlMsg.reply(`❌ Removed <@${userIdToRemove}>'s reaction on: https://discord.com/channels/${controlMsg.guild.id}/${channelId}/${messageId}`);
+  await message.reply(`❌ Removed <@${userIdToRemove}>'s reaction.`);
 } else {
-  await controlMsg.reply(`✅ Kept reaction from <@${userIdToRemove}>.`);
+  await message.reply(`✅ Kept <@${userIdToRemove}>'s reaction.`);
 }
 
-reactionTracking.delete(controlMsg.id);
+reactionTracking.delete(message.id);
 
-} catch (err) { console.error('❌ Failed to remove reaction:', err); } });
+} catch (err) { console.error('Error handling moderation reaction:', err); } });
 
 client.login(process.env.DISCORD_TOKEN);
 
