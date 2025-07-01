@@ -12,7 +12,7 @@ const client = new Client({
 });
 
 // ✅ The channel where ❌ can be used to trigger the action
-const controlChannelId = '1389276304544764054'; // e.g. #mod-delete
+const controlChannelId = '1389308377909166110'; // e.g. #mod-delete
 
 // ✅ The channel where reactions will be removed
 const targetChannelId = '1389276377890684948'; // e.g. #submissions
