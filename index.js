@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits, Partials } = require('discord.js'); require('
 
 const client = new Client({ intents: [ GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMessageReactions ], partials: [Partials.Message, Partials.Channel, Partials.Reaction] });
 
-const controlChannelId = process.env.CONTROL_CHANNEL_ID || '1389276304544764054'; const targetChannelId = process.env.TARGET_CHANNEL_ID || '1389276377890684948'; const allowedUsers = process.env.ALLOWED_USER_IDS?.split(',') || ['762245134485946399', '987654321098765432'];
+const controlChannelId = process.env.CONTROL_CHANNEL_ID; const targetChannelId = process.env.TARGET_CHANNEL_ID; const allowedUsers = process.env.ALLOWED_USER_IDS?.split(',') || [];
 
 const reactionTracking = new Map();
 
@@ -16,6 +16,7 @@ try { const targetChannel = await message.guild.channels.fetch(targetChannelId);
 
 const messages = await targetChannel.messages.fetch({ limit: 100 });
 const processedUsers = new Set();
+const reactioners = new Map();
 
 for (const msg of messages.values()) {
   for (const [emoji, react] of msg.reactions.cache) {
@@ -43,7 +44,16 @@ for (const msg of messages.values()) {
         messageId: msg.id,
         channelId: msg.channel.id,
         userIdToRemove: reactingUser.id,
+        reactionMessageId: controlMsg.id
       });
+
+      if (reactioners.size < 10) {
+        reactioners.set(reactingUser.id, {
+          userId: reactingUser.id,
+          msgId: msg.id,
+          channelId: msg.channel.id
+        });
+      }
     }
   }
 }
