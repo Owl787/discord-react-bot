@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits, Partials } = require('discord.js'); require('
 
 const client = new Client({ intents: [ GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMessageReactions, ], partials: [Partials.Message, Partials.Channel, Partials.Reaction], });
 
-// SETUP const controlChannelId = '1389308377909166110'; const targetChannelId = '1389276377890684948'; const allowedUsers = ['762245134485946399', '141586079508594688'];
+// SETUP const controlChannelId = '1389308377909166110'; const targetChannelId = '1389276377890684948'; const allowedUsers = ['762245134485946399', '231802655217811458'];
 
 const reactionTracking = new Map(); // key = controlMsgId, value = { messageId, channelId, userIdToRemove }
 
@@ -23,7 +23,7 @@ if (users.has(mentionedUser.id)) {
       if (reactingUser.bot || reactingUser.id === mentionedUser.id) continue;
 
       const controlMsg = await message.channel.send(
-        `P <@${reactingUser.id}>\n@${mentionedUser.username} reacted on [this message](https://discord.com/channels/${message.guild.id}/${msg.channel.id}/${msg.id})\n✅ = keep ❌ = delete this user's reaction (only in target channel)`
+        `P ${reactingUser.id}\n@${mentionedUser.username} reacted on [this message](https://discord.com/channels/${message.guild.id}/${msg.channel.id}/${msg.id})\n✅ = keep ❌ = delete this user's reaction (only in target channel)`
       );
 
       await controlMsg.react('✅');
