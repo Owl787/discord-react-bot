@@ -22,8 +22,7 @@ if (users.has(mentionedUser.id)) {
     for (const [userId, reactingUser] of users) {
       if (reactingUser.bot || reactingUser.id === mentionedUser.id) continue;
 
-      const controlMsg = await message.channel.send(
-        `P ${reactingUser.id}\n@${mentionedUser.username} reacted on [this message](https://discord.com/channels/${message.guild.id}/${msg.channel.id}/${msg.id})\n✅ = keep ❌ = delete this user's reaction (only in target channel)`
+      "P " + reactingUser.id + "\n@" + mentionedUser.username + " reacted on [this message](https://discord.com/channels/" + message.guild.id + "/" + msg.channel.id + "/" + msg.id + ")\n✅ = keep ❌ = delete this user's reaction (only in target channel)"
       );
 
       await controlMsg.react('✅');
